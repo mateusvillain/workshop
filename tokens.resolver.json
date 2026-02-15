@@ -1,0 +1,40 @@
+{
+  "name": "Design System",
+  "version": "2025.10",
+  "sets": {
+    "primitive": {
+      "sources": [
+        { "$ref": "tokens/semantic/semantic.json" }
+      ]
+    }
+  },
+  "modifiers": {
+    "size": {
+      "default": "desktop",
+      "contexts": {
+        "mobile": [
+          { "$ref": "tokens/primitive/spacing.small.json" }
+        ],
+        "desktop": [
+          { "$ref": "tokens/primitive/spacing.large.json" }
+        ]
+      }
+    },
+    "theme": {
+      "default": "light",
+      "contexts": {
+        "light": [
+          { "$ref": "tokens/theme/color.light.json" }
+        ],
+        "dark": [
+          { "$ref": "tokens/theme/color.dark.json" }
+        ]
+      }
+    }
+  },
+  "resolutionOrder": [
+    { "$ref": "#/sets/primitive" },
+    { "$ref": "#/modifiers/size" },
+    { "$ref": "#/modifiers/theme" }
+  ]
+}
