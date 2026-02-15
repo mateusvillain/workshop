@@ -1,0 +1,25 @@
+{
+  "name": "workshop",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "npx tz build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mateusvillain/workshop.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/mateusvillain/workshop/issues"
+  },
+  "homepage": "https://github.com/mateusvillain/workshop#readme",
+  "devDependencies": {
+    "@terrazzo/cli": "^2.0.0-alpha.7",
+    "@terrazzo/plugin-css": "^2.0.0-alpha.7",
+    "eslint": "^10.0.0"
+  }
+}
