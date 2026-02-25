@@ -1,0 +1,20 @@
+{
+  "button": {
+    "$type": "dimension",
+    "small": {
+      "$value": "{spacing.0}"
+    },
+    "medium": {
+      "$value": "{spacing.8}"
+    },
+    "large": {
+      "$value": "{spacing.24}"
+    }
+  },
+  "background": {
+    "$type": "color",
+    "container": {
+      "$value": "{color.brand.300}"
+    }
+  }
+}
