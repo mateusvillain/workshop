@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>DTCG Tokens Exporter</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f0e8;
+        --panel: rgba(255, 251, 245, 0.88);
+        --panel-strong: #fffdf8;
+        --line: rgba(62, 42, 24, 0.12);
+        --line-strong: rgba(62, 42, 24, 0.2);
+        --text: #22170f;
+        --muted: #715746;
+        --accent: #b24c2a;
+        --accent-strong: #8c3518;
+        --accent-soft: rgba(178, 76, 42, 0.12);
+        --success: #1f7a46;
+        --warning: #9a5d00;
+        --shadow: 0 24px 60px rgba(78, 42, 18, 0.12);
+        --radius-xl: 24px;
+        --radius-lg: 18px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
+        --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+        --display: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #18110d;
+          --panel: rgba(36, 27, 22, 0.9);
+          --panel-strong: #231a15;
+          --line: rgba(255, 234, 218, 0.08);
+          --line-strong: rgba(255, 234, 218, 0.16);
+          --text: #f6eadf;
+          --muted: #c8ab93;
+          --accent: #ff8d5c;
+          --accent-strong: #ffb089;
+          --accent-soft: rgba(255, 141, 92, 0.16);
+          --success: #5fd28d;
+          --warning: #ffbf5f;
+          --shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font: 13px/1.45 var(--display);
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 168, 120, 0.2), transparent 32%),
+          radial-gradient(circle at right 20%, rgba(244, 205, 160, 0.18), transparent 28%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 40%),
+          var(--bg);
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar,
+      .main {
+        padding: 20px;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent);
+      }
+
+      .brand {
+        margin-bottom: 18px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--accent);
+        font: 600 11px/1.2 var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+        line-height: 1.1;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .panel {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .panel + .panel {
+        margin-top: 14px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 0 0 12px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .selection-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .selection-item {
+        display: grid;
+        gap: 4px;
+        padding: 12px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        background: var(--panel-strong);
+        transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+      }
+
+      .selection-item:hover {
+        transform: translateY(-1px);
+        border-color: var(--line-strong);
+      }
+
+      .selection-item input {
+        margin: 0;
+      }
+
+      .selection-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .selection-name {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .selection-meta {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .button {
+        padding: 12px 14px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-md);
+        background: var(--panel-strong);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .button:hover {
+        border-color: var(--accent);
+      }
+
+      .button-primary {
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        color: #fff8f3;
+      }
+
+      .button-primary:hover {
+        filter: brightness(1.04);
+      }
+
+      .button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      .summary {
+        display: grid;
+        gap: 10px;
+      }
+
+      .summary-card {
+        padding: 12px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: var(--panel-strong);
+      }
+
+      .summary-label {
+        margin: 0 0 4px;
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .summary-value {
+        margin: 0;
+        font: 600 20px/1.1 var(--display);
+      }
+
+      .main {
+        display: grid;
+        gap: 16px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .toolbar h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+      }
+
+      .toolbar p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .toolbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .status {
+        display: none;
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: var(--panel);
+      }
+
+      .status.visible {
+        display: block;
+      }
+
+      .status.error {
+        border-color: rgba(199, 59, 59, 0.28);
+        background: rgba(199, 59, 59, 0.1);
+      }
+
+      .status.success {
+        border-color: rgba(31, 122, 70, 0.28);
+        background: rgba(31, 122, 70, 0.1);
+      }
+
+      .empty {
+        display: grid;
+        place-items: center;
+        min-height: 220px;
+        padding: 28px;
+        border: 1px dashed var(--line-strong);
+        border-radius: var(--radius-xl);
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.18);
+        text-align: center;
+      }
+
+      .files {
+        display: grid;
+        gap: 14px;
+      }
+
+      .file-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-xl);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        animation: rise 240ms ease;
+      }
+
+      .file-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .file-title {
+        margin: 0;
+        font-weight: 600;
+      }
+
+      .file-meta {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .file-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .snippet {
+        width: 100%;
+        min-height: 260px;
+        padding: 16px;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        resize: vertical;
+        font: 12px/1.55 var(--mono);
+      }
+
+      .warnings {
+        margin: 0;
+        padding: 0 16px 16px;
+        list-style: none;
+      }
+
+      .warnings li {
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        background: rgba(154, 93, 0, 0.08);
+        color: var(--warning);
+        font-size: 12px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font: 600 11px/1 var(--mono);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <section class="brand">
+          <p class="eyebrow">DTCG 2025.10</p>
+          <h1>Tokens Exporter</h1>
+          <p class="subtitle">Selecione coleções e estilos locais do arquivo para gerar JSON por coleção e baixar tudo em um único `.zip`.</p>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <span>Export Sources</span>
+            <span id="selected-count">0 selected</span>
+          </div>
+          <div class="selection-list" id="selection-list"></div>
+          <div class="actions">
+            <button class="button" id="select-all">Select all</button>
+            <button class="button" id="select-none">Clear</button>
+            <button class="button button-primary" id="generate">Generate snippets</button>
+            <button class="button" id="cancel">Close</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <span>Summary</span>
+          </div>
+          <div class="summary">
+            <div class="summary-card">
+              <p class="summary-label">Collections and style groups</p>
+              <p class="summary-value" id="source-count">0</p>
+            </div>
+            <div class="summary-card">
+              <p class="summary-label">Generated files</p>
+              <p class="summary-value" id="file-count">0</p>
+            </div>
+            <div class="summary-card">
+              <p class="summary-label">Warnings</p>
+              <p class="summary-value" id="warning-count">0</p>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <section class="toolbar">
+          <div>
+            <div class="pill">One snippet per file</div>
+            <h2>Preview and download</h2>
+            <p>Variable collections with multiple modes become separate files named `collection.mode.json`.</p>
+          </div>
+          <div class="toolbar-actions">
+            <button class="button button-primary" id="download-zip" disabled>Download ZIP</button>
+          </div>
+        </section>
+
+        <div class="status" id="status"></div>
+        <section id="results" class="empty">Selecione ao menos uma coleção ou grupo de estilos e gere os snippets.</section>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        exportables: [],
+        files: [],
+      };
+
+      const selectionList = document.getElementById('selection-list');
+      const selectedCount = document.getElementById('selected-count');
+      const sourceCount = document.getElementById('source-count');
+      const fileCount = document.getElementById('file-count');
+      const warningCount = document.getElementById('warning-count');
+      const results = document.getElementById('results');
+      const status = document.getElementById('status');
+      const downloadZipButton = document.getElementById('download-zip');
+      const generateButton = document.getElementById('generate');
+
+      window.onmessage = (event) => {
+        const message = event.data.pluginMessage;
+        if (!message) {
+          return;
+        }
+
+        if (message.type === 'init') {
+          state.exportables = message.exportables || [];
+          renderSelectionList();
+          updateSummary();
+          return;
+        }
+
+        if (message.type === 'exports-generated') {
+          state.files = message.files || [];
+          renderFiles();
+          setStatus(
+            state.files.length
+              ? 'Arquivos gerados. Revise os snippets e baixe o `.zip` quando quiser.'
+              : 'Nenhum arquivo foi gerado para a seleção atual.',
+            state.files.length ? 'success' : ''
+          );
+          generateButton.disabled = false;
+          return;
+        }
+
+        if (message.type === 'exports-error') {
+          setStatus(message.message || 'Falha ao gerar os arquivos.', 'error');
+          generateButton.disabled = false;
+        }
+      };
+
+      document.getElementById('select-all').onclick = () => {
+        setAllSelections(true);
+      };
+
+      document.getElementById('select-none').onclick = () => {
+        setAllSelections(false);
+      };
+
+      document.getElementById('cancel').onclick = () => {
+        parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
+      };
+
+      document.getElementById('generate').onclick = () => {
+        const selectedIds = getSelectedIds();
+        if (!selectedIds.length) {
+          setStatus('Selecione ao menos uma coleção ou grupo de estilos.', 'error');
+          return;
+        }
+
+        setStatus('Gerando arquivos DTCG 2025.10...', '');
+        generateButton.disabled = true;
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: 'generate-exports',
+              selectedIds,
+            },
+          },
+          '*'
+        );
+      };
+
+      downloadZipButton.onclick = async () => {
+        if (!state.files.length) {
+          return;
+        }
+
+        try {
+          const blob = createZipBlob(state.files.map((file) => ({
+            name: file.name,
+            content: file.content,
+          })));
+          downloadBlob(blob, 'design-tokens-export.zip');
+        } catch (error) {
+          setStatus(error && error.message ? error.message : 'Falha ao gerar o ZIP.', 'error');
+        }
+      };
+
+      function renderSelectionList() {
+        selectionList.innerHTML = '';
+        sourceCount.textContent = String(state.exportables.length);
+
+        if (!state.exportables.length) {
+          const empty = document.createElement('div');
+          empty.className = 'selection-item';
+          empty.textContent = 'Nenhuma coleção ou estilo local encontrado neste arquivo.';
+          selectionList.appendChild(empty);
+          updateSelectedCount();
+          return;
+        }
+
+        state.exportables.forEach((item) => {
+          const label = document.createElement('label');
+          label.className = 'selection-item';
+
+          const head = document.createElement('div');
+          head.className = 'selection-head';
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = true;
+          checkbox.dataset.id = item.id;
+          checkbox.onchange = updateSelectedCount;
+
+          const content = document.createElement('div');
+          const name = document.createElement('p');
+          name.className = 'selection-name';
+          name.textContent = item.name;
+
+          const meta = document.createElement('p');
+          meta.className = 'selection-meta';
+          meta.textContent = item.count + ' items • ' + item.description;
+
+          content.appendChild(name);
+          content.appendChild(meta);
+          head.appendChild(checkbox);
+          head.appendChild(content);
+          label.appendChild(head);
+
+          selectionList.appendChild(label);
+        });
+
+        updateSelectedCount();
+      }
+
+      function renderFiles() {
+        results.className = 'files';
+        results.innerHTML = '';
+        fileCount.textContent = String(state.files.length);
+
+        let totalWarnings = 0;
+
+        if (!state.files.length) {
+          results.className = 'empty';
+          results.textContent = 'Nenhum snippet para mostrar.';
+          warningCount.textContent = '0';
+          downloadZipButton.disabled = true;
+          return;
+        }
+
+        state.files.forEach((file) => {
+          totalWarnings += file.warnings.length;
+
+          const card = document.createElement('article');
+          card.className = 'file-card';
+
+          const head = document.createElement('div');
+          head.className = 'file-head';
+
+          const info = document.createElement('div');
+          const title = document.createElement('p');
+          title.className = 'file-title';
+          title.textContent = file.name;
+
+          const meta = document.createElement('p');
+          meta.className = 'file-meta';
+          meta.textContent =
+            file.warnings.length
+              ? file.warnings.length + ' warning' + (file.warnings.length > 1 ? 's' : '')
+              : 'Sem warnings';
+
+          info.appendChild(title);
+          info.appendChild(meta);
+
+          const actions = document.createElement('div');
+          actions.className = 'file-actions';
+
+          const copyButton = document.createElement('button');
+          copyButton.className = 'button';
+          copyButton.textContent = 'Copy JSON';
+          copyButton.onclick = async () => {
+            try {
+              await copyText(file.content);
+              setStatus('Snippet copiado: ' + file.name, 'success');
+            } catch (error) {
+              setStatus(
+                error && error.message ? error.message : 'Falha ao copiar o snippet.',
+                'error'
+              );
+            }
+          };
+
+          const downloadButton = document.createElement('button');
+          downloadButton.className = 'button';
+          downloadButton.textContent = 'Download JSON';
+          downloadButton.onclick = () => {
+            downloadBlob(
+              new Blob([file.content], { type: 'application/json' }),
+              file.name
+            );
+          };
+
+          actions.appendChild(copyButton);
+          actions.appendChild(downloadButton);
+          head.appendChild(info);
+          head.appendChild(actions);
+
+          const textarea = document.createElement('textarea');
+          textarea.className = 'snippet';
+          textarea.readOnly = true;
+          textarea.value = file.content;
+
+          card.appendChild(head);
+          card.appendChild(textarea);
+
+          if (file.warnings.length) {
+            const list = document.createElement('ul');
+            list.className = 'warnings';
+
+            file.warnings.forEach((warning) => {
+              const item = document.createElement('li');
+              item.textContent = warning;
+              list.appendChild(item);
+            });
+
+            card.appendChild(list);
+          }
+
+          results.appendChild(card);
+        });
+
+        warningCount.textContent = String(totalWarnings);
+        downloadZipButton.disabled = false;
+      }
+
+      function updateSelectedCount() {
+        const selectedIds = getSelectedIds();
+        selectedCount.textContent = selectedIds.length + ' selected';
+      }
+
+      function updateSummary() {
+        sourceCount.textContent = String(state.exportables.length);
+        fileCount.textContent = String(state.files.length);
+        warningCount.textContent = String(sumWarnings());
+        updateSelectedCount();
+      }
+
+      function sumWarnings() {
+        return state.files.reduce((sum, file) => sum + file.warnings.length, 0);
+      }
+
+      function getSelectedIds() {
+        return Array.from(selectionList.querySelectorAll('input[type="checkbox"]'))
+          .filter((input) => input.checked)
+          .map((input) => input.dataset.id);
+      }
+
+      function setAllSelections(checked) {
+        selectionList.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+          input.checked = checked;
+        });
+        updateSelectedCount();
+      }
+
+      function setStatus(message, tone) {
+        status.textContent = message;
+        status.className = 'status visible' + (tone ? ' ' + tone : '');
+      }
+
+      function downloadBlob(blob, fileName) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+      }
+
+      async function copyText(value) {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          try {
+            await navigator.clipboard.writeText(value);
+            return;
+          } catch (_error) {
+          }
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+
+        const copied = document.execCommand('copy');
+        textarea.remove();
+
+        if (!copied) {
+          throw new Error('O Figma bloqueou a cópia automática neste contexto.');
+        }
+      }
+
+      function createZipBlob(files) {
+        const encoder = new TextEncoder();
+        const now = new Date();
+        const localParts = [];
+        const centralParts = [];
+        let offset = 0;
+
+        files.forEach((file) => {
+          const fileNameBytes = encoder.encode(file.name);
+          const fileData = encoder.encode(file.content);
+          const crc = crc32(fileData);
+          const timestamp = dateToDos(now);
+
+          const localHeader = concatUint8Arrays([
+            uint32LE(0x04034b50),
+            uint16LE(20),
+            uint16LE(0),
+            uint16LE(0),
+            uint16LE(timestamp.time),
+            uint16LE(timestamp.date),
+            uint32LE(crc),
+            uint32LE(fileData.length),
+            uint32LE(fileData.length),
+            uint16LE(fileNameBytes.length),
+            uint16LE(0),
+            fileNameBytes,
+          ]);
+
+          localParts.push(localHeader, fileData);
+
+          const centralHeader = concatUint8Arrays([
+            uint32LE(0x02014b50),
+            uint16LE(20),
+            uint16LE(20),
+            uint16LE(0),
+            uint16LE(0),
+            uint16LE(timestamp.time),
+            uint16LE(timestamp.date),
+            uint32LE(crc),
+            uint32LE(fileData.length),
+            uint32LE(fileData.length),
+            uint16LE(fileNameBytes.length),
+            uint16LE(0),
+            uint16LE(0),
+            uint16LE(0),
+            uint16LE(0),
+            uint32LE(0),
+            uint32LE(offset),
+            fileNameBytes,
+          ]);
+
+          centralParts.push(centralHeader);
+          offset += localHeader.length + fileData.length;
+        });
+
+        const centralDirectory = concatUint8Arrays(centralParts);
+        const localDirectory = concatUint8Arrays(localParts);
+        const endRecord = concatUint8Arrays([
+          uint32LE(0x06054b50),
+          uint16LE(0),
+          uint16LE(0),
+          uint16LE(files.length),
+          uint16LE(files.length),
+          uint32LE(centralDirectory.length),
+          uint32LE(localDirectory.length),
+          uint16LE(0),
+        ]);
+
+        return new Blob([localDirectory, centralDirectory, endRecord], {
+          type: 'application/zip',
+        });
+      }
+
+      function concatUint8Arrays(parts) {
+        const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+        const result = new Uint8Array(totalLength);
+        let offset = 0;
+        parts.forEach((part) => {
+          result.set(part, offset);
+          offset += part.length;
+        });
+        return result;
+      }
+
+      function uint16LE(value) {
+        return new Uint8Array([
+          value & 0xff,
+          (value >> 8) & 0xff,
+        ]);
+      }
+
+      function uint32LE(value) {
+        return new Uint8Array([
+          value & 0xff,
+          (value >> 8) & 0xff,
+          (value >> 16) & 0xff,
+          (value >> 24) & 0xff,
+        ]);
+      }
+
+      function dateToDos(date) {
+        const year = Math.max(1980, date.getFullYear());
+        return {
+          time:
+            (date.getSeconds() >> 1) |
+            (date.getMinutes() << 5) |
+            (date.getHours() << 11),
+          date:
+            date.getDate() |
+            ((date.getMonth() + 1) << 5) |
+            ((year - 1980) << 9),
+        };
+      }
+
+      const CRC_TABLE = (() => {
+        const table = new Uint32Array(256);
+        for (let i = 0; i < 256; i += 1) {
+          let value = i;
+          for (let bit = 0; bit < 8; bit += 1) {
+            value = (value & 1) ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
+          }
+          table[i] = value >>> 0;
+        }
+        return table;
+      })();
+
+      function crc32(data) {
+        let crc = 0xffffffff;
+        for (let i = 0; i < data.length; i += 1) {
+          crc = CRC_TABLE[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
+        }
+        return (crc ^ 0xffffffff) >>> 0;
+      }
+    </script>
+  </body>
+</html>
