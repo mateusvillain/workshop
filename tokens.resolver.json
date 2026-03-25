@@ -2,7 +2,7 @@
   "name": "Design System",
   "version": "2025.10",
   "sets": {
-    "primitive": {
+    "semantic": {
       "sources": [
         { "$ref": "tokens/semantic/semantic.json" }
       ]
@@ -39,7 +39,7 @@
     }
   },
   "resolutionOrder": [
-    { "$ref": "#/sets/primitive" },
+    { "$ref": "#/sets/semantic" },
     { "$ref": "#/modifiers/size" },
     { "$ref": "#/modifiers/brandTheme" }
   ]
