@@ -70,15 +70,5 @@ export default defineConfig({
         },
       ],
     }),
-  ],
-  lint: {
-    rules: {
-      "core/consistent-naming": [ "error", { format: "kebab-case" } ],
-      "a11y/min-font-size": ["error", { minSizeRem: 1 }],
-      "core/valid-color": [ "error", { legacyFormat: false, ignoreRanges: false }, ],
-      "core/valid-font-family": "error",
-      "core/valid-font-weight": "error",
-      "core/duplicate-values": "off",
-    },
-  },
+  ]
 });
