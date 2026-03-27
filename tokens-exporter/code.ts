@@ -171,21 +171,21 @@ async function buildExports(selectedIds: string[]): Promise<FileExport[]> {
   }
 
   if (selectedLookup['styles:paint']) {
-    const styleFiles = await exportPaintStyles();
+    const styleFiles = await exportPaintStyles(globalVariablePathRegistry);
     for (let i = 0; i < styleFiles.length; i += 1) {
       files.push(styleFiles[i]);
     }
   }
 
   if (selectedLookup['styles:text']) {
-    const styleFiles = await exportTextStyles();
+    const styleFiles = await exportTextStyles(globalVariablePathRegistry);
     for (let i = 0; i < styleFiles.length; i += 1) {
       files.push(styleFiles[i]);
     }
   }
 
   if (selectedLookup['styles:effect']) {
-    const styleFiles = await exportEffectStyles();
+    const styleFiles = await exportEffectStyles(globalVariablePathRegistry);
     for (let i = 0; i < styleFiles.length; i += 1) {
       files.push(styleFiles[i]);
     }
@@ -251,14 +251,14 @@ async function exportVariableCollection(
   return files;
 }
 
-async function exportPaintStyles(): Promise<FileExport[]> {
+async function exportPaintStyles(variablePaths: VariablePathRegistry): Promise<FileExport[]> {
   const styles = await figma.getLocalPaintStylesAsync();
   const warnings: string[] = [];
   const document: DtcgFile = {};
 
   for (let i = 0; i < styles.length; i += 1) {
     const style = styles[i];
-    insertToken(document, buildNamePath(style.name), serializePaintStyle(style, warnings));
+    insertToken(document, buildNamePath(style.name), serializePaintStyle(style, warnings, variablePaths));
   }
 
   hoistGroupTypes(document, true);
@@ -274,14 +274,14 @@ async function exportPaintStyles(): Promise<FileExport[]> {
   ];
 }
 
-async function exportTextStyles(): Promise<FileExport[]> {
+async function exportTextStyles(variablePaths: VariablePathRegistry): Promise<FileExport[]> {
   const styles = await figma.getLocalTextStylesAsync();
   const warnings: string[] = [];
   const document: DtcgFile = {};
 
   for (let i = 0; i < styles.length; i += 1) {
     const style = styles[i];
-    insertToken(document, buildNamePath(style.name), serializeTextStyle(style, warnings));
+    insertToken(document, buildNamePath(style.name), serializeTextStyle(style, warnings, variablePaths));
   }
 
   hoistGroupTypes(document, true);
@@ -297,14 +297,14 @@ async function exportTextStyles(): Promise<FileExport[]> {
   ];
 }
 
-async function exportEffectStyles(): Promise<FileExport[]> {
+async function exportEffectStyles(variablePaths: VariablePathRegistry): Promise<FileExport[]> {
   const styles = await figma.getLocalEffectStylesAsync();
   const warnings: string[] = [];
   const document: DtcgFile = {};
 
   for (let i = 0; i < styles.length; i += 1) {
     const style = styles[i];
-    insertToken(document, buildNamePath(style.name), serializeEffectStyle(style, warnings));
+    insertToken(document, buildNamePath(style.name), serializeEffectStyle(style, warnings, variablePaths));
   }
 
   hoistGroupTypes(document, true);
@@ -469,14 +469,19 @@ function serializeResolvedValue(value: VariableValue, inferred: VariableTypeInfe
   return value;
 }
 
-function serializePaintStyle(style: PaintStyle, warnings: string[]): DtcgToken {
+function serializePaintStyle(
+  style: PaintStyle,
+  warnings: string[],
+  variablePaths: VariablePathRegistry,
+): DtcgToken {
   if (style.paints.length === 1) {
     const paint = style.paints[0];
 
     if (paint.type === 'SOLID') {
+      const colorAlias = getPaintColorAlias(paint, variablePaths);
       return {
         $type: 'color',
-        $value: toDtcgColor(paint),
+        $value: colorAlias || toDtcgColor(paint),
       };
     }
 
@@ -499,15 +504,25 @@ function serializePaintStyle(style: PaintStyle, warnings: string[]): DtcgToken {
   };
 }
 
-function serializeTextStyle(style: TextStyle, warnings: string[]): DtcgToken {
-  const fontWeight = inferFontWeight(style.fontName.style);
-  const lineHeight = normalizeLineHeight(style.lineHeight, style.fontSize, warnings, style.name);
-  const letterSpacing = normalizeLetterSpacing(style.letterSpacing, style.fontSize);
+function serializeTextStyle(
+  style: TextStyle,
+  warnings: string[],
+  variablePaths: VariablePathRegistry,
+): DtcgToken {
+  const fontWeightAlias = getTextStyleAlias(style, 'fontWeight', variablePaths);
+  const fontFamilyAlias = getTextStyleAlias(style, 'fontFamily', variablePaths);
+  const fontSizeAlias = getTextStyleAlias(style, 'fontSize', variablePaths);
+  const letterSpacingAlias = getTextStyleAlias(style, 'letterSpacing', variablePaths);
+  const lineHeightAlias = getTextStyleAlias(style, 'lineHeight', variablePaths);
+  const fontWeight = fontWeightAlias || inferFontWeight(style.fontName.style);
+  const lineHeight = lineHeightAlias || normalizeLineHeight(style.lineHeight, style.fontSize, warnings, style.name);
+  const letterSpacing = letterSpacingAlias || normalizeLetterSpacing(style.letterSpacing, style.fontSize);
+
   return {
     $type: 'typography',
     $value: {
-      fontFamily: style.fontName.family,
-      fontSize: dimension(style.fontSize, 'px'),
+      fontFamily: fontFamilyAlias || style.fontName.family,
+      fontSize: fontSizeAlias || dimension(style.fontSize, 'px'),
       fontWeight,
       letterSpacing,
       lineHeight,
@@ -515,7 +530,11 @@ function serializeTextStyle(style: TextStyle, warnings: string[]): DtcgToken {
   };
 }
 
-function serializeEffectStyle(style: EffectStyle, warnings: string[]): DtcgToken {
+function serializeEffectStyle(
+  style: EffectStyle,
+  warnings: string[],
+  variablePaths: VariablePathRegistry,
+): DtcgToken {
   let allShadows = true;
   for (let i = 0; i < style.effects.length; i += 1) {
     const effect = style.effects[i];
@@ -530,7 +549,7 @@ function serializeEffectStyle(style: EffectStyle, warnings: string[]): DtcgToken
     for (let i = 0; i < style.effects.length; i += 1) {
       const effect = style.effects[i];
       if (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') {
-        shadows.push(effectToShadowToken(effect));
+        shadows.push(effectToShadowToken(effect, variablePaths));
       }
     }
 
@@ -547,7 +566,7 @@ function serializeEffectStyle(style: EffectStyle, warnings: string[]): DtcgToken
   );
 
   return {
-    $value: normalizeEffectArray(style.effects),
+    $value: normalizeEffectArray(style.effects, variablePaths),
   };
 }
 
@@ -891,20 +910,23 @@ function gradientStopsToDtcg(stops: ReadonlyArray<ColorStop>): Array<{ color: un
   return result;
 }
 
-function effectToShadowToken(effect: DropShadowEffect | InnerShadowEffect): {
+function effectToShadowToken(
+  effect: DropShadowEffect | InnerShadowEffect,
+  variablePaths: VariablePathRegistry,
+): {
   color: unknown;
-  offsetX: { value: number; unit: 'px' };
-  offsetY: { value: number; unit: 'px' };
-  blur: { value: number; unit: 'px' };
-  spread: { value: number; unit: 'px' };
+  offsetX: { value: number; unit: 'px' } | string;
+  offsetY: { value: number; unit: 'px' } | string;
+  blur: { value: number; unit: 'px' } | string;
+  spread: { value: number; unit: 'px' } | string;
   inset?: boolean;
 } {
   const token = {
-    color: toDtcgColor(effect.color),
-    offsetX: dimension(effect.offset.x, 'px'),
-    offsetY: dimension(effect.offset.y, 'px'),
-    blur: dimension(effect.radius, 'px'),
-    spread: dimension(effect.spread || 0, 'px'),
+    color: getEffectAlias(effect, 'color', variablePaths) || toDtcgColor(effect.color),
+    offsetX: getEffectAlias(effect, 'offsetX', variablePaths) || dimension(effect.offset.x, 'px'),
+    offsetY: getEffectAlias(effect, 'offsetY', variablePaths) || dimension(effect.offset.y, 'px'),
+    blur: getEffectAlias(effect, 'radius', variablePaths) || dimension(effect.radius, 'px'),
+    spread: getEffectAlias(effect, 'spread', variablePaths) || dimension(effect.spread || 0, 'px'),
   };
 
   if (effect.type === 'INNER_SHADOW') {
@@ -973,6 +995,51 @@ function round(value: number): number {
   return Math.round(value * 10000) / 10000;
 }
 
+function getAliasValue(alias: VariableAlias | undefined, variablePaths: VariablePathRegistry): string | null {
+  if (!alias) {
+    return null;
+  }
+
+  const aliasPath = variablePaths[alias.id];
+  if (!aliasPath) {
+    return null;
+  }
+
+  return '{' + aliasPath.join('.') + '}';
+}
+
+function getTextStyleAlias(
+  style: TextStyle,
+  field: VariableBindableTextField,
+  variablePaths: VariablePathRegistry,
+): string | null {
+  if (!style.boundVariables) {
+    return null;
+  }
+
+  return getAliasValue(style.boundVariables[field], variablePaths);
+}
+
+function getPaintColorAlias(paint: SolidPaint, variablePaths: VariablePathRegistry): string | null {
+  if (!paint.boundVariables) {
+    return null;
+  }
+
+  return getAliasValue(paint.boundVariables.color, variablePaths);
+}
+
+function getEffectAlias(
+  effect: DropShadowEffect | InnerShadowEffect,
+  field: VariableBindableEffectField,
+  variablePaths: VariablePathRegistry,
+): string | null {
+  if (!effect.boundVariables) {
+    return null;
+  }
+
+  return getAliasValue(effect.boundVariables[field], variablePaths);
+}
+
 function normalizeColorComponent(value: number): number {
   return Math.round(value * 255) / 255;
 }
@@ -1036,12 +1103,12 @@ function normalizePaint(paint: Paint): unknown {
   };
 }
 
-function normalizeEffectArray(effects: ReadonlyArray<Effect>): unknown[] {
+function normalizeEffectArray(effects: ReadonlyArray<Effect>, variablePaths: VariablePathRegistry): unknown[] {
   const result: unknown[] = [];
   for (let i = 0; i < effects.length; i += 1) {
     const effect = effects[i];
     if (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') {
-      result.push(effectToShadowToken(effect));
+      result.push(effectToShadowToken(effect, variablePaths));
       continue;
     }
 
